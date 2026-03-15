@@ -157,77 +157,86 @@ uint16_t DlmsCosemComponent::update_server_address(uint16_t logicalAddress, uint
   return this->server_address_;
 }
 
+
+
+
+
 void DlmsCosemComponent::setup() {
-  ESP_LOGD(TAG, "setup");
+  ESP_LOGI(TAG, "DLMS setup(): begin");
 
-  cl_init(&dlms_settings_, true, this->client_address_, this->server_address_,
-          this->auth_required_ ? DLMS_AUTHENTICATION_LOW : DLMS_AUTHENTICATION_NONE,
-          this->auth_required_ ? this->password_.c_str() : NULL, DLMS_INTERFACE_TYPE_HDLC);
+#if defined(ARDUINO_ARCH_RP2040)
+  ESP_LOGI(TAG, "Heap at setup entry: %u", (unsigned)rp2040.getFreeHeap());
+#endif
 
-  this->buffers_.init(this->is_push_mode() ? DEFAULT_IN_BUF_SIZE_PUSH : DEFAULT_IN_BUF_SIZE);
+  // ❗ Nedělej nic těžkého hned — žádné cl_init(), žádné DLMS buffery,
+  // žádný parser, žádný UART lock. To vše se přesune níže.
 
   this->indicate_transmission(false);
 
-#ifdef USE_ESP32
-  iuart_ = make_unique<DlmsCosemUart>(*static_cast<uart::IDFUARTComponent *>(this->parent_));
-#endif
-
-#if USE_ESP8266
-  iuart_ = make_unique<DlmsCosemUart>(*static_cast<uart::ESP8266UartComponent *>(this->parent_));
-#endif
-  if (this->flow_control_pin_ != nullptr) {
+  if (this->flow_control_pin_ != nullptr)
     this->flow_control_pin_->setup();
-  }
 
-  this->set_baud_rate_(this->baud_rate_handshake_);
+#if defined(USE_RP2040)
+  // ░░ RP2040: pouze vytvoříme UART wrapper, nic víc
+  iuart_ = make_unique<DlmsCosemUart>(*static_cast<uart::RP2040UartComponent *>(this->parent_));
+#endif
 
+  // ░░ Teprve po stabilizaci ESPHome systému spustíme DLMS
+  //    (USB, WiFi, API, mDNS, logger, watchdog, scheduler)
+  const uint32_t DELAY_START_MS = 9000;   // 9 sekund – ideální pro Pico W
+
+  this->set_timeout(DELAY_START_MS, [this]() {
+
+    ESP_LOGI(TAG, "DLMS delayed start after WiFi/API init");
+
+#if defined(ARDUINO_ARCH_RP2040)
+    ESP_LOGI(TAG, "Heap before DLMS init: %u", (unsigned)rp2040.getFreeHeap());
+#endif
+
+    // ░░ Nyní provedeme DLMS inicializaci
+    cl_init(&dlms_settings_, true, this->client_address_, this->server_address_,
+            this->auth_required_ ? DLMS_AUTHENTICATION_LOW : DLMS_AUTHENTICATION_NONE,
+            this->auth_required_ ? this->password_.c_str() : NULL,
+            DLMS_INTERFACE_TYPE_HDLC);
+
+    // ░░ Buffer – malý začáteční buffer pro RP2040 (PUSH mód rozšiřuje později)
+    const size_t START_INBUF = 512;   // bezpečná velikost
+    this->buffers_.init(START_INBUF);
+
+    // ░░ PUSH MODE – vytvoříme parser až teď (bez <ranges>)
 #ifdef ENABLE_DLMS_COSEM_PUSH_MODE
-  if (this->is_push_mode()) {
-    CosemObjectFoundCallback fn = [this](auto... args) { (void) this->set_sensor_value(args...); };
+    if (this->is_push_mode()) {
+      CosemObjectFoundCallback fn = [this](auto... args) {
+        this->set_sensor_value(args...);
+      };
 
-    this->axdr_parser_ = new AxdrStreamParser(&this->buffers_.in, fn, this->push_show_log_);
+      this->axdr_parser_ = new AxdrStreamParser(&this->buffers_.in, fn, this->push_show_log_);
 
-    // default patterns
-    this->axdr_parser_->register_pattern_dsl("HAN-DTM", "F,TO,TVOSDTM");
-    this->axdr_parser_->register_pattern_dsl("DEV-ID", "S2(TO,TV)");  // Device ID structures (2 elements)
-    this->axdr_parser_->register_pattern_dsl("T1", "TC,TO,TS,TV");
-    this->axdr_parser_->register_pattern_dsl("T2", "TO,TV,TSU");
-    this->axdr_parser_->register_pattern_dsl("T3", "TV,TC,TSU,TO");
-    this->axdr_parser_->register_pattern_dsl("U.ZPA", "F,C,O,A,TV");
-
-    // user-provided pattern
-    if (this->push_custom_pattern_dsl_.length() > 0) {
-      auto split_view = this->push_custom_pattern_dsl_ | std::views::split(';');
-      for (const auto &pattern : split_view) {
-        std::string pattern_str;
-        for (auto it = pattern.begin(); it != pattern.end(); ++it) {
-          pattern_str += *it;
-        }
-        this->axdr_parser_->register_pattern_dsl("CUSTOM", pattern_str, 0);
+      if (!this->push_custom_pattern_dsl_.empty()) {
+        std::vector<std::string> parts;
+        split_semicolon_list(this->push_custom_pattern_dsl_, parts);
+        for (auto &p : parts)
+          this->axdr_parser_->register_pattern_dsl("CUSTOM", p, 0);
       }
     }
+#endif
 
-    bool locked = false;
-    for (int i = 0; i < 3; i++)
-      if (this->try_lock_uart_session_()) {
-        locked = true;
-        break;
-      }
-
-    if (!locked) {
-      ESP_LOGE(TAG, "Failed to lock UART session. Aborting setup.");
-      this->mark_failed();
+    // ░░ Až teď je bezpečné locknout UART
+    if (!this->try_lock_uart_session_()) {
+      ESP_LOGE(TAG, "DLMS UART lock failed — is the UART used by something else?");
       return;
     }
-  }
-#endif  // ENABLE_DLMS_COSEM_PUSH_MODE
 
-  this->set_timeout(BOOT_WAIT_S * 1000, [this]() {
-    ESP_LOGD(TAG, "Boot timeout, component is ready to use");
-    this->clear_rx_buffers_();
+    ESP_LOGI(TAG, "DLMS initialized successfully, switching to IDLE state");
+
+#if defined(ARDUINO_ARCH_RP2040)
+    ESP_LOGI(TAG, "Heap after DLMS init: %u", (unsigned)rp2040.getFreeHeap());
+#endif
+
     this->set_next_state_(State::IDLE);
   });
 }
+
 
 void DlmsCosemComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "DLMS-COSEM (SPODES):");
