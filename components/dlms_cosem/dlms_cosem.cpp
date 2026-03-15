@@ -206,20 +206,31 @@ void DlmsCosemComponent::setup() {
 
     // ░░ PUSH MODE – vytvoříme parser až teď (bez <ranges>)
 #ifdef ENABLE_DLMS_COSEM_PUSH_MODE
-    if (this->is_push_mode()) {
-      CosemObjectFoundCallback fn = [this](auto... args) {
-        this->set_sensor_value(args...);
-      };
+  if (this->is_push_mode()) {
+    CosemObjectFoundCallback fn = [this](auto... args) { (void) this->set_sensor_value(args...); };
 
-      this->axdr_parser_ = new AxdrStreamParser(&this->buffers_.in, fn, this->push_show_log_);
+    this->axdr_parser_ = new AxdrStreamParser(&this->buffers_.in, fn, this->push_show_log_);
 
-      if (!this->push_custom_pattern_dsl_.empty()) {
-        std::vector<std::string> parts;
-        split_semicolon_list(this->push_custom_pattern_dsl_, parts);
-        for (auto &p : parts)
-          this->axdr_parser_->register_pattern_dsl("CUSTOM", p, 0);
+    // default patterns
+    this->axdr_parser_->register_pattern_dsl("HAN-DTM", "F,TO,TVOSDTM");
+    this->axdr_parser_->register_pattern_dsl("DEV-ID", "S2(TO,TV)");  // Device ID structures (2 elements)
+    this->axdr_parser_->register_pattern_dsl("T1", "TC,TO,TS,TV");
+    this->axdr_parser_->register_pattern_dsl("T2", "TO,TV,TSU");
+    this->axdr_parser_->register_pattern_dsl("T3", "TV,TC,TSU,TO");
+    this->axdr_parser_->register_pattern_dsl("U.ZPA", "F,C,O,A,TV");
+
+    // user-provided pattern
+    if (this->push_custom_pattern_dsl_.length() > 0) {
+      auto split_view = this->push_custom_pattern_dsl_ | std::views::split(';');
+      for (const auto &pattern : split_view) {
+        std::string pattern_str;
+        for (auto it = pattern.begin(); it != pattern.end(); ++it) {
+          pattern_str += *it;
+        }
+        this->axdr_parser_->register_pattern_dsl("CUSTOM", pattern_str, 0);
       }
-    }
+    }  
+
 #endif
 
     // ░░ Až teď je bezpečné locknout UART
