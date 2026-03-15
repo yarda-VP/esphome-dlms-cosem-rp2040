@@ -12,7 +12,7 @@
 
 #ifdef USE_RP2040
 #include "esphome/components/uart/uart_component_rp2040.h"
-#include "esphome/core/log.h
+#include "esphome/core/log.h"
 #endif
 
 namespace esphome {
