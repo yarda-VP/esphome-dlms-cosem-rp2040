@@ -725,12 +725,12 @@ void DlmsCosemComponent::handle_publish_() {
     }
 
     {
-#ifdef USE_ARDUINO
-      uint32_t h = ESP.getFreeHeap();
 // zmeny Yarda
-#elif defined(ARDUINO_ARCH_RP2040)
+#ifdef ARDUINO_ARCH_RP2040
       uint32_t h = rp2040.getFreeHeap();
 // zmeny Yarda
+#elif defined(USE_ARDUINO)
+      uint32_t h = ESP.getFreeHeap();
 #else
       uint32_t h = esp_get_free_heap_size();
 #endif
