@@ -122,26 +122,6 @@ uint8_t baud_rate_to_byte(uint32_t baud) {
 }
 */
 
-
-// Jednoduchý trim bez <locale>, <regex> apod.
-static inline void trim_ascii_ws(std::string &s) {
-  size_t start = 0;
-  while (start < s.size()) {
-    char c = s[start];
-    if (c == ' ' || c == '\t' || c == '\r' || c == '\n') ++start; else break;
-  }
-
-  size_t end = s.size();
-  while (end > start) {
-    char c = s[end - 1];
-    if (c == ' ' || c == '\t' || c == '\r' || c == '\n') --end; else break;
-  }
-
-  if (start == 0 && end == s.size()) return;      // nic k ořezu
-  if (start >= end) { s.clear(); return; }        // vše whitespace
-  s.assign(s.data() + start, end - start);
-}
-
 void DlmsCosemComponent::set_baud_rate_(uint32_t baud_rate) {
   ESP_LOGV(TAG, "Setting baud rate %u bps", baud_rate);
   iuart_->update_baudrate(baud_rate);
