@@ -178,8 +178,9 @@ void DlmsCosemComponent::setup() {
 #if USE_ESP8266
   iuart_ = make_unique<DlmsCosemUart>(*static_cast<uart::ESP8266UartComponent *>(this->parent_));
 #endif
-  if (this->flow_control_pin_ != nullptr)
+  if (this->flow_control_pin_ != nullptr) {
     this->flow_control_pin_->setup();
+  }
 
   // ░░ Teprve po stabilizaci ESPHome systému spustíme DLMS
   //    (USB, WiFi, API, mDNS, logger, watchdog, scheduler)
