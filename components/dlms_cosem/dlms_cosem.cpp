@@ -236,6 +236,7 @@ void DlmsCosemComponent::setup() {
       ESP_LOGE(TAG, "DLMS UART lock failed — is the UART used by something else?");
       return;
     }
+  }
 #endif
     ESP_LOGI(TAG, "DLMS initialized successfully, switching to IDLE state");
 #if defined(ARDUINO_ARCH_RP2040)
@@ -243,8 +244,8 @@ void DlmsCosemComponent::setup() {
 #endif
 
     this->set_next_state_(State::IDLE);
+  }
 }
-
 
 void DlmsCosemComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "DLMS-COSEM (SPODES):");
