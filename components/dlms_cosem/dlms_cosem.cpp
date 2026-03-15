@@ -175,6 +175,11 @@ void DlmsCosemComponent::setup() {
 #if defined(USE_RP2040)
   // ░░ RP2040: pouze vytvoříme UART wrapper, nic víc
   iuart_ = make_unique<DlmsCosemUart>(*static_cast<uart::RP2040UartComponent *>(this->parent_));
+#elif defined (USE_ESP32)
+  iuart_ = make_unique<DlmsCosemUart>(*static_cast<uart::IDFUARTComponent *>(this->parent_));
+#endif
+#if USE_ESP8266
+  iuart_ = make_unique<DlmsCosemUart>(*static_cast<uart::ESP8266UartComponent *>(this->parent_));
 #endif
 
   // ░░ Teprve po stabilizaci ESPHome systému spustíme DLMS
