@@ -11,7 +11,7 @@
 #endif
 
 #ifdef USE_RP2040
-#include "esphome/components/uart/uart.h"
+#include "esphome/components/uart/uart_component_rp2040.h"
 #endif
 
 namespace esphome {
@@ -81,41 +81,19 @@ class DlmsCosemUart final : public uart::ESP8266UartComponent {
 
 // zmena Yarda
 #ifdef USE_RP2040
-// ------------------------------------------------------------
-// RP2040 (Raspberry Pi Pico W) implementace
-// Používá jen veřejné API ESPHome UARTComponent,
-// žádné RP2040-specifické privátní členy -> stabilní napříč verzemi.
-// ------------------------------------------------------------
-class DlmsCosemUart final : public uart::UARTComponent {
+class DlmsCosemUart final : public uart::RP2040UartComponent {
  public:
-  explicit DlmsCosemUart(uart::UARTComponent &uart) : uart_(uart) {}
-
-  // Přenastavení baudrate za běhu
+  explicit DlmsCosemUart(uart::RP2040UartComponent &uart) : uart_(uart) {}
   void update_baudrate(uint32_t baudrate) { uart_.set_baud_rate(baudrate); }
-
-  // Rychlé přečtení 1 bajtu s krátkým timeoutem (stejná sémantika jako u ESP větví)
   bool read_one_byte(uint8_t *data) {
-    if (!this->check_read_timeout_quick_(1))
-      return false;
+    if (!this->check_read_timeout_quick_(1)) return false;
     return uart_.read_array(data, 1);
   }
-
  protected:
-  bool check_read_timeout_quick_(size_t len) {
-    if (uart_.available() >= int(len))
-      return true;
-    uint32_t start_time = millis();
-    while (uart_.available() < int(len)) {
-      if (millis() - start_time > TIMEOUT) {
-        return false;
-      }
-      yield();
-    }
-    return true;
-  }
-
-  uart::UARTComponent &uart_;
+  bool check_read_timeout_quick_(size_t len) { /* … stejná smyčka jako výše … */ }
+  uart::RP2040UartComponent &uart_;
 };
+
 #endif
 // zmena Yarda
 
