@@ -142,32 +142,6 @@ static inline void trim_ascii_ws(std::string &s) {
   s.assign(s.data() + start, end - start);
 }
 
-void split_semicolon_list(const std::string &src, std::vector<std::string> &out) {
-  out.clear();
-  out.reserve(8);  // drobná optimalizace, ať to hned nealokuje
-
-  std::string token;
-  token.reserve(32);
-
-  for (size_t i = 0; i < src.size(); ++i) {
-    char ch = src[i];
-
-    if (ch == ';') {
-      // uzavři token
-      trim_ascii_ws(token);
-      if (!token.empty()) out.emplace_back(token);
-      token.clear();
-    } else {
-      token.push_back(ch);
-    }
-  }
-
-  // poslední token po skončení řetězce
-  trim_ascii_ws(token);
-  if (!token.empty()) out.emplace_back(token);
-}
-
-
 void DlmsCosemComponent::set_baud_rate_(uint32_t baud_rate) {
   ESP_LOGV(TAG, "Setting baud rate %u bps", baud_rate);
   iuart_->update_baudrate(baud_rate);
