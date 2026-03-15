@@ -10,6 +10,15 @@
 #include <sstream>
 #include <ranges>
 #include "dlms_cosem_helpers.h"
+
+// zmeny Yarda
+// dlms_cosem.cpp
+#include <Arduino.h>
+#if defined(ARDUINO_ARCH_RP2040)
+  #include <RP2040.h>  // Earle Philhower core
+#endif
+// zmeny Yarda
+
 namespace esphome {
 namespace dlms_cosem {
 
@@ -718,6 +727,10 @@ void DlmsCosemComponent::handle_publish_() {
     {
 #ifdef USE_ARDUINO
       uint32_t h = ESP.getFreeHeap();
+// zmeny Yarda
+#elif defined(ARDUINO_ARCH_RP2040)
+      uint32_t h = rp2040.getFreeHeap();
+// zmeny Yarda
 #else
       uint32_t h = esp_get_free_heap_size();
 #endif
