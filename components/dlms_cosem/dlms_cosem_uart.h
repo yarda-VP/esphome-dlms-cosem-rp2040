@@ -90,7 +90,19 @@ class DlmsCosemUart final : public uart::RP2040UartComponent {
     return uart_.read_array(data, 1);
   }
  protected:
-  bool check_read_timeout_quick_(size_t len) { /* … stejná smyčka jako výše … */ }
+  bool check_read_timeout_quick_(size_t len) {
+   if (this->hw_->available() >= int(len))
+      return true;
+
+    uint32_t start_time = millis();
+    while (this->hw_->available() < int(len)) {
+      if (millis() - start_time > TIMEOUT) {
+        return false;
+      }
+      yield();
+    }
+    return true;
+  }
   uart::RP2040UartComponent &uart_;
 };
 
