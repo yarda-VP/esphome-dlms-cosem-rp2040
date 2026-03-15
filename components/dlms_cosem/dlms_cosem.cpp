@@ -7,8 +7,8 @@
 #ifdef USE_ESP_IDF
 #include <esp_heap_caps.h>
 #endif
-#include <sstream>
-//#include <ranges>
+//#include <sstream>
+#include <ranges>
 #include "dlms_cosem_helpers.h"
 
 // zmeny Yarda
