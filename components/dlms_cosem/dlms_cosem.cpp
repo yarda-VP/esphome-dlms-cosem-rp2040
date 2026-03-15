@@ -243,7 +243,6 @@ void DlmsCosemComponent::setup() {
 #endif
 
     this->set_next_state_(State::IDLE);
-  });
 }
 
 
