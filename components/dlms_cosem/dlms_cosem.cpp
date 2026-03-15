@@ -229,7 +229,7 @@ void DlmsCosemComponent::setup() {
         }
         this->axdr_parser_->register_pattern_dsl("CUSTOM", pattern_str, 0);
       }
-    }  
+    }
 
 #endif
 
