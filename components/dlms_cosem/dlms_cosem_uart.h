@@ -12,6 +12,7 @@
 
 #ifdef USE_RP2040
 #include "esphome/components/uart/uart_component_rp2040.h"
+#include "esphome/core/log.h
 #endif
 
 namespace esphome {
@@ -86,6 +87,7 @@ class DlmsCosemUart final : public uart::RP2040UartComponent {
   explicit DlmsCosemUart(uart::RP2040UartComponent &uart) : uart_(uart) {}
   void update_baudrate(uint32_t baudrate) { uart_.set_baud_rate(baudrate); }
   bool read_one_byte(uint8_t *data) {
+    ESP_LOGD("dlms", "avail=%u", (unsigned)uart_.available());
     if (!this->check_read_timeout_quick_(1)) return false;
     return uart_.read_array(data, 1);
   }
