@@ -10,6 +10,10 @@
 #include "esphome/components/uart/uart_component_esp8266.h"
 #endif
 
+#ifdef USE_RP2040
+#include "esphome/components/uart/uart.h"
+#endif
+
 namespace esphome {
 namespace dlms_cosem {
 
@@ -74,6 +78,46 @@ class DlmsCosemUart final : public uart::ESP8266UartComponent {
   uart::ESP8266SoftwareSerial *const sw_;  // software serial
 };
 #endif
+
+// zmena Yarda
+#ifdef USE_RP2040
+// ------------------------------------------------------------
+// RP2040 (Raspberry Pi Pico W) implementace
+// Používá jen veřejné API ESPHome UARTComponent,
+// žádné RP2040-specifické privátní členy -> stabilní napříč verzemi.
+// ------------------------------------------------------------
+class DlmsCosemUart final : public uart::UARTComponent {
+ public:
+  explicit DlmsCosemUart(uart::UARTComponent &uart) : uart_(uart) {}
+
+  // Přenastavení baudrate za běhu
+  void update_baudrate(uint32_t baudrate) { uart_.set_baud_rate(baudrate); }
+
+  // Rychlé přečtení 1 bajtu s krátkým timeoutem (stejná sémantika jako u ESP větví)
+  bool read_one_byte(uint8_t *data) {
+    if (!this->check_read_timeout_quick_(1))
+      return false;
+    return uart_.read_array(data, 1);
+  }
+
+ protected:
+  bool check_read_timeout_quick_(size_t len) {
+    if (uart_.available() >= int(len))
+      return true;
+    uint32_t start_time = millis();
+    while (uart_.available() < int(len)) {
+      if (millis() - start_time > TIMEOUT) {
+        return false;
+      }
+      yield();
+    }
+    return true;
+  }
+
+  uart::UARTComponent &uart_;
+};
+#endif
+// zmena Yarda
 
 #ifdef USE_ESP32
 
