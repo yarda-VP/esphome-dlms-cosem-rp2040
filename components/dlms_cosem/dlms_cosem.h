@@ -1,5 +1,16 @@
 #pragma once
 
+
+// zmena Yarda
+#warning "KONTROLA: Kompiluji s ARDUINO_ARCH_RP2040"
+
+#ifdef ARDUINO_ARCH_RP2040
+#warning "ARDUINO_ARCH_RP2040 JE definovano!"
+#else
+#warning "ARDUINO_ARCH_RP2040 NENI definovano!"
+#endif
+// zmena Yarda
+
 #include "esphome/components/uart/uart.h"
 #include "esphome/core/component.h"
 
