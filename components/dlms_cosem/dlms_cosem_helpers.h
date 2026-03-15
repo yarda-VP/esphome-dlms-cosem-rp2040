@@ -3,6 +3,7 @@
 #include <string>
 #include <dlmssettings.h>
 
+#include <vector>
 // Rozdělí "a; b ;c;;  d" → ["a","b","c","d"]
 // - oddělovač: ';'
 // - prázdné položky ignoruje
