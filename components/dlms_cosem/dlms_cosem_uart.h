@@ -91,11 +91,13 @@ class DlmsCosemUart final : public uart::RP2040UartComponent {
   }
  protected:
   bool check_read_timeout_quick_(size_t len) {
-   if (this->hw_->available() >= int(len))
+    // 1) zkus rychle – už je tam dost dat?
+    if (this->uart_.available() >= len)
       return true;
 
+    // 2) čekej do TIMEOUT
     uint32_t start_time = millis();
-    while (this->hw_->available() < int(len)) {
+    while (this->uart_.available() < len) {
       if (millis() - start_time > TIMEOUT) {
         return false;
       }
@@ -103,6 +105,7 @@ class DlmsCosemUart final : public uart::RP2040UartComponent {
     }
     return true;
   }
+
   uart::RP2040UartComponent &uart_;
 };
 
