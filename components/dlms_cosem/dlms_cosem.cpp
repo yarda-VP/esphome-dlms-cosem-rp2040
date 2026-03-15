@@ -231,16 +231,13 @@ void DlmsCosemComponent::setup() {
       }
     }
 
-#endif
-
     // ░░ Až teď je bezpečné locknout UART
     if (!this->try_lock_uart_session_()) {
       ESP_LOGE(TAG, "DLMS UART lock failed — is the UART used by something else?");
       return;
     }
-
+#endif
     ESP_LOGI(TAG, "DLMS initialized successfully, switching to IDLE state");
-
 #if defined(ARDUINO_ARCH_RP2040)
     ESP_LOGI(TAG, "Heap after DLMS init: %u", (unsigned)rp2040.getFreeHeap());
 #endif
