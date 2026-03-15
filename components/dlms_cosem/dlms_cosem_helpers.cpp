@@ -6,6 +6,50 @@
 namespace esphome {
 namespace dlms_cosem {
 
+// Jednoduchý trim bez <locale>, <regex> apod.
+static inline void trim_ascii_ws(std::string &s) {
+  size_t start = 0;
+  while (start < s.size()) {
+    char c = s[start];
+    if (c == ' ' || c == '\t' || c == '\r' || c == '\n') ++start; else break;
+  }
+
+  size_t end = s.size();
+  while (end > start) {
+    char c = s[end - 1];
+    if (c == ' ' || c == '\t' || c == '\r' || c == '\n') --end; else break;
+  }
+
+  if (start == 0 && end == s.size()) return;      // nic k ořezu
+  if (start >= end) { s.clear(); return; }        // vše whitespace
+  s.assign(s.data() + start, end - start);
+}
+
+void split_semicolon_list(const std::string &src, std::vector<std::string> &out) {
+  out.clear();
+  out.reserve(8);  // drobná optimalizace, ať to hned nealokuje
+
+  std::string token;
+  token.reserve(32);
+
+  for (size_t i = 0; i < src.size(); ++i) {
+    char ch = src[i];
+
+    if (ch == ';') {
+      // uzavři token
+      trim_ascii_ws(token);
+      if (!token.empty()) out.emplace_back(token);
+      token.clear();
+    } else {
+      token.push_back(ch);
+    }
+  }
+
+  // poslední token po skončení řetězce
+  trim_ascii_ws(token);
+  if (!token.empty()) out.emplace_back(token);
+}
+
 float dlms_data_as_float(DLMS_DATA_TYPE value_type, const uint8_t *value_buffer_ptr, uint8_t value_length) {
   if (value_buffer_ptr == nullptr || value_length == 0)
     return 0.0f;
