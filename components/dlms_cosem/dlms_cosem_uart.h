@@ -18,7 +18,7 @@
 namespace esphome {
 namespace dlms_cosem {
 
-// static const uint32_t TIMEOUT = 20;  // default value in uart implementation is 100ms
+ static const uint32_t TIMEOUT = 20;  // default value in uart implementation is 100ms
 
 #ifdef USE_ESP8266
 
