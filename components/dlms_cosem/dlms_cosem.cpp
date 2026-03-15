@@ -157,10 +157,6 @@ uint16_t DlmsCosemComponent::update_server_address(uint16_t logicalAddress, uint
   return this->server_address_;
 }
 
-
-
-
-
 void DlmsCosemComponent::setup() {
   ESP_LOGI(TAG, "DLMS setup(): begin");
 
