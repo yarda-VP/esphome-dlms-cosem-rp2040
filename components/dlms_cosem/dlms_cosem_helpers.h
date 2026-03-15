@@ -3,6 +3,12 @@
 #include <string>
 #include <dlmssettings.h>
 
+// Rozdělí "a; b ;c;;  d" → ["a","b","c","d"]
+// - oddělovač: ';'
+// - prázdné položky ignoruje
+// - ořezává bílé znaky kolem položek
+void split_semicolon_list(const std::string &src, std::vector<std::string> &out);
+
 namespace esphome {
 namespace dlms_cosem {
 
